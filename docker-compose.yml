@@ -1,0 +1,27 @@
+version: "3.1"
+
+services:
+  auth:
+    build: auth/
+    volumes:
+      - ~/.my:/root/.m2
+      - ./auth/:/code
+    ports:
+      - "7878:7878"
+    links:
+      - db
+    environment:
+      - "DATABASE_USER=${DATABASE_USER}"
+      - "DATABASE_PASS=${DATABASE_PASS}"
+      - "DATABASE_NAME=${DATABASE_NAME}"
+  db:
+    image: postgres:9.6-alpine
+    volumes:
+      - ./db/entrypoint:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_USER=${DATABASE_USER}"
+      - "POSTGRES_PASSWORD=${DATABASE_PASS}"
+      - "POSTGRES_DB=${DATABASE_NAME}"
+
