@@ -1,12 +1,11 @@
 (ns auth.core
-  (:gen-class)
-  (:require [environ.core :refer [env]]))
+  (:gen-class))
 
 (def db {:dbtype "postgresql"
-         :dbname (env :DATABASE_NAME)
+         :dbname (System/getenv "DATABASE_NAME")
          :host "db"
-         :user (env :DATABASE_USER)
-         :password (env :DATABASE_PASS)
+         :user (System/getenv "DATABASE_USER")
+         :password (System/getenv "DATABASE_PASS")
          :ssl true
          :sslfactory "org.postgresql.ssl.NonValidatingFactory"})
 
