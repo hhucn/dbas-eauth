@@ -4,9 +4,9 @@
             [io.pedestal.http.body-params :as body-params]
             [ring.util.response :as ring-resp]
             [korma.db :as kdb]
-            [hiccup.core :as h]
-            [hiccup.page :as hp]
-            [hiccup.form :as hf]))
+            [clojure.data.json :as json]
+            [clj-http.client :as client]
+            [hiccup.page :as hp]))
 
 (def db {:dbtype "postgresql"
          :dbname (System/getenv "DATABASE_NAME")
@@ -47,16 +47,14 @@
                         [:p "redirect_uri: " redirect_uri]
                         [:p "account_linking_token: " account_linking_token]])))
 
-(defn auth-page [{{:keys [account]} :form-params :as request}]
-  (ring-resp/response (hp/html5
-                       (hp/include-css "css/bootstrap.min.css")
-                       [:div.container
-                        [:h1 "Auth"]
-                        [:p (:form-params request)]
-                        [:p (str account)]
-                        [:p (str request)]])))
-
-
+(defn auth-page [{{:keys [account password]} :form-params :as request}]
+  (let [res (client/post "https://dbas.cs.uni-duesseldorf.de/api/login"
+                         {:body (json/write-str {:nickname account :password password})})]
+    (ring-resp/response (hp/html5
+                         (hp/include-css "css/bootstrap.min.css")
+                         [:div.container
+                          [:h1 "Auth"]
+                          [:p (str (:body res))]]))))
 
 (defn home-page [request]
   (ring-resp/response "Hello World!"))
