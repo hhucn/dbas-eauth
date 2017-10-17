@@ -5,9 +5,10 @@ services:
     build: auth/
     volumes:
       - ~/.my:/root/.m2
-      - ./auth/:/code
+      - ./auth/:/app
     ports:
-      - "7878:7878"
+      - "8080:8080"
+      - "7887:7887"
     links:
       - db
     environment:
