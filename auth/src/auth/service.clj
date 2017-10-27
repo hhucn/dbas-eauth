@@ -1,6 +1,6 @@
 (ns auth.service
-  (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
+  (:require [clojure.spec.alpha :as s]
+            [io.pedestal.http :as http]
             [io.pedestal.http.body-params :as body-params]
             [ring.util.response :as ring-resp]
             [korma.db :as kdb]
@@ -32,8 +32,7 @@
                        (hp/include-css "css/bootstrap.min.css")
                        [:div.container
                         [:h1 "Login"]
-                        [:form {:action "/auth"
-                                :method :POST}
+                        [:form {:action "/auth" :method :POST}
                          [:div.form-group
                           [:label "D-BAS Account"]
                           [:input.form-control {:name "account"}]]
@@ -43,31 +42,35 @@
                          [:input {:name "redirect_uri" :value redirect_uri :type :hidden}]
                          [:input {:name "account_linking_token" :value account_linking_token :type :hidden}]
                          [:input {:class "btn btn-primary"
-                                  :type :submit}]]
-                        [:p "redirect_uri: " redirect_uri]
-                        [:p "account_linking_token: " account_linking_token]])))
+                                  :type :submit}]]])))
 
-(defn auth-page [{{:keys [account password]} :form-params :as request}]
-  (let [res (client/post "https://dbas.cs.uni-duesseldorf.de/api/login"
-                         {:body (json/write-str {:nickname account :password password})})]
-    (ring-resp/response (hp/html5
-                         (hp/include-css "css/bootstrap.min.css")
-                         [:div.container
-                          [:h1 "Auth"]
-                          [:p (str (:body res))]]))))
+(defn auth-page [{{:keys [account password redirect_uri]} :form-params}]
+  (let [uuid (str (java.util.UUID/randomUUID))
+        redirect (str redirect_uri "&authorization_code=" uuid)]
+    (try
+      (client/post "https://dbas.cs.uni-duesseldorf.de/api/login"
+                   {:body (json/write-str {:nickname account :password password})})
+      (ring-resp/redirect redirect)
+      (catch Exception _
+        (ring-resp/redirect redirect_uri)))))
 
-(defn home-page [request]
-  (ring-resp/response "Hello World!"))
+(defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
+  (println "\n\n\n\n\n\n\nSUCCESS ###################")
+  (println {:params params})
+  (ring-resp/response (hp/html5 [:h1 "Success!"])))
 
-;; Defines "/" and "/about" routes with their associated :get handlers.
-;; The interceptors defined after the verb map (e.g., {:get home-page}
-;; apply to / and its children (/about).
+;; {:json-params {:recipient {:id 1144092719067446}, :timestamp 1509116849482, :sender {:id 1417200965011924}, :account_linking {:authorization_code f9db521f-574d-4df4-bc62-d1c6ba5abeae, :status linked}}
+
+(s/def ::id string?)
+(s/def ::messaging coll?)
+
+;; -----------------------------------------------------------------------------
+
 (def common-interceptors [(body-params/body-params) http/html-body])
 
-;; Tabular routes
-(def routes #{["/" :get (conj common-interceptors `home-page)]
-              ["/login" :get (conj common-interceptors `login-page)]
-              ["/auth" :post (conj common-interceptors `auth-page)]})
+(def routes #{["/login" :get (conj common-interceptors `login-page)]
+              ["/auth" :post (conj common-interceptors `auth-page)]
+              ["/success" :post (conj common-interceptors `success-page)]})
 
 ;; Map-based routes
 ;(def routes `{"/" {:interceptors [(body-params/body-params) http/html-body]
