@@ -13,7 +13,6 @@
 
                  [hiccup "2.0.0-alpha1"]
                  [korma "0.4.0"]
-                 #_[org.clojure/java.jdbc "0.7.1"]
                  [org.postgresql/postgresql "42.1.4"]
 
                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]

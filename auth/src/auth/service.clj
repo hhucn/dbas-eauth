@@ -29,6 +29,9 @@
 ;; nickname | recipient_service | recipient_id | sender_id | timestamp
 ;; Chris    | Facebook          | 4242123      | 12310238  | 1282136
 
+(kc/defentity users
+  (kc/entity-fields :id :nickname :service :app_id :user_id :created))
+
 (def users_auth (atom {}))
 
 ;; -----------------------------------------------------------------------------
