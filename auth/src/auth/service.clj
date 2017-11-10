@@ -58,10 +58,16 @@
 (defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
   (when (s/valid? ::success-params (:json-params params))
     (let [auth (:authorization_code account_linking)
+          status (:status account_linking)
           nickname (get @users_auth auth)]
-      (kc/insert users (kc/values {:nickname nickname :service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
-      (swap! users_auth dissoc auth)
-      (ring-resp/response (hp/html5 [:h1 "Success!"])))))
+      (case status
+        "linked" (do
+                   (kc/insert users (kc/values {:nickname nickname :service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
+                   (swap! users_auth dissoc auth)
+                   (http/json-response {:status :ok :message "User logged in"}))
+        "unlinked" (do
+                     (kc/delete users (kc/where {:user_id (str (:id sender)) :app_id (str (:id recipient))}))
+                     (http/json-response {:status :ok :message "User logged out"}))))))
 
 (defn resolve-user [{{:keys [service app_id user_id]} :params :as request}]
   (when (s/valid? ::resolve-user-params (:params request))
@@ -113,4 +119,3 @@
               ::http/container-options {:h2c? true
                                         :h2? false
                                         :ssl? false}})
-
