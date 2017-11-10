@@ -56,7 +56,7 @@
         (ring-resp/redirect redirect_uri)))))
 
 (defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
-  (if (s/valid? ::success-params (:json-params params))
+  (when (s/valid? ::success-params (:json-params params))
     (let [auth (:authorization_code account_linking)
           nickname (get @users_auth auth)]
       (kc/insert users (kc/values {:nickname nickname :service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
