@@ -55,6 +55,28 @@
         (println "Login not successful. Redirecting to" redirect_uri)
         (ring-resp/redirect redirect_uri)))))
 
+(defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
+  (if (s/valid? ::success-params (:json-params params))
+    (let [auth (:authorization_code account_linking)
+          nickname (get @users_auth auth)]
+      (kc/insert users (kc/values {:nickname nickname :service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
+      (swap! users_auth dissoc auth)
+      (ring-resp/response (hp/html5 [:h1 "Success!"])))))
+
+(defn resolve-user [{{:keys [service app_id user_id]} :params :as request}]
+  (when (s/valid? ::resolve-user-params (:params request))
+    (when-let [user (first (kc/select users
+                                      (kc/where {:service service
+                                                 :app_id app_id
+                                                 :user_id user_id})))]
+      (http/json-response {:status :ok, :data {:nickname (:nickname user)}}))))
+
+(comment
+  (client/get "http://localhost:8080/resolve-user?service=Facebook&app_id=1144092719067446&user_id=1235572976569567")
+  )
+
+;; -----------------------------------------------------------------------------
+
 (s/def ::id string?)
 (s/def ::recipient (s/keys :req-un [::id]))
 (s/def ::timestamp pos-int?)
@@ -66,16 +88,13 @@
 (s/def ::success-params
   (s/keys :req-un [::recipient ::timestamp ::sender ::account_linking]))
 
-(defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
-  (if (s/valid? ::success-params (:json-params params))
-    (let [auth (:authorization_code account_linking)
-          nickname (get @users_auth auth)]
-      (kc/insert users (kc/values {:nickname nickname :service "Facebook" :app_id (:id recipient) :user_id (:id sender)}))
-      (swap! users_auth dissoc auth)
-      (ring-resp/response (hp/html5 [:h1 "Success!"])))))
+(s/def ::service string?)
+(s/def ::app_id string?)
+(s/def ::user_id string?)
 
-;; {:recipient {:id 1144092719067446}, :timestamp 1509354888386, :sender {:id 1417200965011924},
-;;  :account_linking {:authorization_code eaeb9728-5f99-48ba-816d-9f08917c5b99, :status linked}}
+(s/def ::resolve-user-params
+  (s/keys :req-un [::service ::app_id ::user_id]))
+
 
 ;; -----------------------------------------------------------------------------
 
@@ -83,7 +102,8 @@
 
 (def routes #{["/login" :get (conj common-interceptors `login-page)]
               ["/auth" :post (conj common-interceptors `auth-page)]
-              ["/success" :post (conj common-interceptors `success-page)]})
+              ["/success" :post (conj common-interceptors `success-page)]
+              ["/resolve-user" :get (conj common-interceptors `resolve-user)]})
 
 (def service {:env :prod
               ::http/routes routes
