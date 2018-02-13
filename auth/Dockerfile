@@ -1,8 +1,8 @@
-FROM clojure:alpine
+FROM openjdk:jre-alpine
+ENV PORT 1236
 
-COPY . /app
-WORKDIR /app
+COPY target/dbas.eauth-0.0.2-SNAPSHOT-standalone.jar dbas.eauth-0.0.2-SNAPSHOT-standalone.jar
 
-EXPOSE 8080 7887
 
-CMD ["lein", "repl", ":headless", ":host", "0.0.0.0", ":port", "7887"]
+EXPOSE $PORT
+CMD ["java", "-jar", "dbas.eauth-0.0.2-SNAPSHOT-standalone.jar"]

@@ -1,25 +1,17 @@
-(ns auth.service
+(ns dbas.eauth.service
   (:require [clojure.spec.alpha :as s]
+            [clojure.core.async :as async :refer [<!!]]
             [io.pedestal.http :as http]
             [io.pedestal.http.body-params :as body-params]
             [ring.util.response :as ring-resp]
-            [korma.core :as kc]
-            [korma.db :as kdb]
+            [konserve.filestore :refer [new-fs-store]]
+            [konserve.core :as k]
             [clojure.data.json :as json]
             [clj-http.client :as client]
             [hiccup.page :as hp]))
 
-(kdb/defdb prod
-  (kdb/postgres {:db (System/getenv "DATABASE_NAME")
-                 :user (System/getenv "DATABASE_USER")
-                 :password (System/getenv "DATABASE_PASS")
-                 ;; optional keys
-                 :host "db"
-                 :port "5432"
-                 :delimiters ""}))
-
-(kc/defentity users
-  (kc/entity-fields :id :nickname :service :app_id :user_id :created))
+(def dbas-url (or (System/getenv "DBAS_URL") "https://dbas.cs.uni-duesseldorf.de/api/login"))
+(def store (<!! (new-fs-store (or (System/getenv "EAUTH_STORE") "./store"))))
 
 (def users_auth (atom {}))
 
@@ -46,12 +38,13 @@
   (let [uuid (str (java.util.UUID/randomUUID))
         redirect (str redirect_uri "&authorization_code=" uuid)]
     (try
-      (client/post "https://dbas.cs.uni-duesseldorf.de/api/login"
+      (client/post dbas-url
                    {:body (json/write-str {:nickname account :password password})})
       (println "Login successful. Redirecting to" redirect)
       (swap! users_auth assoc uuid account)
       (ring-resp/redirect redirect)
-      (catch Exception _
+      (catch Exception e
+        (println e)
         (println "Login not successful. Redirecting to" redirect_uri)
         (ring-resp/redirect redirect_uri)))))
 
@@ -62,24 +55,27 @@
           nickname (get @users_auth auth)]
       (case status
         "linked" (do
-                   (kc/insert users (kc/values {:nickname nickname :service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
+                   (<!! (k/assoc-in store [{:service "facebook"
+                                            :app_id (:id recipient)
+                                            :user_id (:id sender)}]
+                                          nickname))
                    (swap! users_auth dissoc auth)
                    (http/json-response {:status :ok :message "User logged in"}))
         "unlinked" (do
-                     (kc/delete users (kc/where {:user_id (str (:id sender)) :app_id (str (:id recipient))}))
+                     (<!! (k/dissoc store {:service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
                      (http/json-response {:status :ok :message "User logged out"}))))))
 
 (defn resolve-user [{{:keys [service app_id user_id]} :params :as request}]
-  (when (s/valid? ::resolve-user-params (:params request))
-    (when-let [user (first (kc/select users
-                                      (kc/where {:service service
-                                                 :app_id app_id
-                                                 :user_id user_id})))]
-      (http/json-response {:status :ok, :data {:nickname (:nickname user)}}))))
+  (if (s/valid? ::resolve-user-params (:params request))
+    (when-let [nickname (<!! (k/get-in store [{:service service
+                                               :app_id app_id
+                                               :user_id user_id}]))]
+      (http/json-response {:status :ok, :data {:nickname nickname}}))
+    (http/json-response {:status :error, :data "Could not resolve!"})))
 
 (comment
-  (client/get "http://localhost:8080/resolve-user?service=Facebook&app_id=1144092719067446&user_id=1235572976569567")
-  )
+  (client/get "http://localhost:8080/resolve-user?service=Facebook&app_id=1144092719067446&user_id=1235572976569567"))
+
 
 ;; -----------------------------------------------------------------------------
 
@@ -115,7 +111,7 @@
               ::http/routes routes
               ::http/resource-path "/public"
               ::http/type :jetty
-              ::http/port 8080
+              ::http/port 1236
               ::http/container-options {:h2c? true
                                         :h2? false
                                         :ssl? false}})
