@@ -40,12 +40,11 @@
     (try
       (client/post dbas-url
                    {:body (json/write-str {:nickname account :password password})})
-      (println "Login successful. Redirecting to" redirect)
+      (log/info "Login successful. Redirecting to" redirect)
       (swap! users_auth assoc uuid account)
       (ring-resp/redirect redirect)
       (catch Exception e
-        (println e)
-        (println "Login not successful. Redirecting to" redirect_uri)
+        (log/error "Login not successful. Redirecting to" redirect_uri)
         (ring-resp/redirect redirect_uri)))))
 
 (defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
@@ -60,18 +59,21 @@
                                             :user_id (:id sender)}]
                                           nickname))
                    (swap! users_auth dissoc auth)
+                   (log/info nickname " logged in")
                    (http/json-response {:status :ok :message "User logged in"}))
         "unlinked" (do
                      (<!! (k/dissoc store {:service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
+                     (log/info "User logged out")
                      (http/json-response {:status :ok :message "User logged out"}))))))
 
 (defn resolve-user [{{:keys [service app_id user_id]} :params :as request}]
   (if (s/valid? ::resolve-user-params (:params request))
-    (when-let [nickname (<!! (k/get-in store [{:service service
-                                               :app_id app_id
-                                               :user_id user_id}]))]
-      (http/json-response {:status :ok, :data {:nickname nickname}}))
-    (http/json-response {:status :error, :data "Could not resolve!"})))
+    (if-let [nickname (<!! (k/get-in store [{:service service
+                                             :app_id app_id
+                                             :user_id user_id}]))]
+      (http/json-response {:status :ok, :data {:nickname nickname}})
+      (http/json-response {:status :error, :data "Could not resolve nickname!"}))
+    (http/json-response {:status :error, :data "You fucked up your parameters! Try: /resolve-user?service=Facebook&app_id=1456&user_id=2378"})))
 
 (comment
   (client/get "http://localhost:8080/resolve-user?service=Facebook&app_id=1144092719067446&user_id=1235572976569567"))

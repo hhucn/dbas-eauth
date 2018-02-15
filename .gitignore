@@ -1,12 +1,40 @@
-target/
-classes/
-checkouts/
+# Project related
+
+# Java related
 pom.xml
 pom.xml.asc
-*.jar
+*jar
 *.class
+
+# Leiningen
+classes/
+lib/
+native/
+checkouts/
+target/
 .lein-*
+repl-port
 .nrepl-port
-.hgignore
-.hg/
-.#*
+.repl
+
+# Temp Files
+*.orig
+*~
+.*.swp
+.*.swo
+*.tmp
+*.bak
+
+# OS X
+.DS_Store
+
+# Logging
+*.log
+/logs/
+
+# Builds
+out/
+build/
+
+# KV Store
+store/
