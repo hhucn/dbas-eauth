@@ -1,6 +1,7 @@
 # dbas-eauth
 
 [![CircleCI](https://circleci.com/gh/hhucn/dbas-eauth.svg?style=svg)](https://circleci.com/gh/hhucn/dbas-eauth)
+[![Docker Build Status](https://img.shields.io/docker/build/mroerni/dbas-eauth.svg)](https://hub.docker.com/r/mroerni/dbas-eauth/)
 
 External auth-module for D-BAS. This is a middleware to communicate between
 D-BAS and the 3rd party application.
