@@ -8,7 +8,6 @@
             [konserve.core :as k]
             [clojure.data.json :as json]
             [clj-http.client :as client]
-            [clojure.tools.logging :as log]
             [hiccup.page :as hp]))
 
 (def dbas-url (or (System/getenv "DBAS_URL") "https://dbas.cs.uni-duesseldorf.de/api/login"))
@@ -41,11 +40,11 @@
     (try
       (client/post dbas-url
                    {:body (json/write-str {:nickname account :password password})})
-      (log/info "Login successful. Redirecting to" redirect)
+      (println "Login successful. Redirecting to" redirect)
       (swap! users_auth assoc uuid account)
       (ring-resp/redirect redirect)
       (catch Exception e
-        (log/error "Login not successful. Redirecting to" redirect_uri)
+        (println "Login not successful. Redirecting to" redirect_uri)
         (ring-resp/redirect redirect_uri)))))
 
 (defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
@@ -60,11 +59,11 @@
                                             :user_id (:id sender)}]
                                           nickname))
                    (swap! users_auth dissoc auth)
-                   (log/info nickname " logged in")
+                   (println nickname "linked")
                    (http/json-response {:status :ok :message "User logged in"}))
         "unlinked" (do
                      (<!! (k/dissoc store {:service "facebook" :app_id (:id recipient) :user_id (:id sender)}))
-                     (log/info "User logged out")
+                     (println "User unlinked")
                      (http/json-response {:status :ok :message "User logged out"}))))))
 
 (defn resolve-user [{{:keys [service app_id user_id]} :params :as request}]
