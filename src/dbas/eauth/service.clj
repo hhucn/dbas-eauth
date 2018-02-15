@@ -8,6 +8,7 @@
             [konserve.core :as k]
             [clojure.data.json :as json]
             [clj-http.client :as client]
+            [clojure.tools.logging :as log]
             [hiccup.page :as hp]))
 
 (def dbas-url (or (System/getenv "DBAS_URL") "https://dbas.cs.uni-duesseldorf.de/api/login"))
