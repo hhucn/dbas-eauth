@@ -1,0 +1,9 @@
+17:06:56.087 [main] INFO  org.eclipse.jetty.util.log - Logging initialized @27372ms to org.eclipse.jetty.util.log.Slf4jLog
+17:06:56.579 [main] INFO  org.eclipse.jetty.server.Server - jetty-9.4.0.v20161208
+17:06:56.669 [main] INFO  o.e.j.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@cd64c60{/,null,AVAILABLE}
+17:06:56.762 [main] INFO  o.e.jetty.server.AbstractConnector - Started ServerConnector@396af3d0{HTTP/1.1,[http/1.1, h2c]}{0.0.0.0:8080}
+17:06:56.763 [main] INFO  org.eclipse.jetty.server.Server - Started @28052ms
+19:24:35.725 [qtp1599779245-18] INFO  io.pedestal.http - {:msg "GET /", :line 80}
+19:24:36.985 [qtp1599779245-17] INFO  io.pedestal.http - {:msg "GET /favicon.ico", :line 80}
+19:24:48.261 [qtp1599779245-13] INFO  io.pedestal.http - {:msg "GET /login", :line 80}
+19:24:48.316 [qtp1599779245-19] INFO  io.pedestal.http - {:msg "GET /css/bootstrap.min.css", :line 80}
