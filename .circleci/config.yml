@@ -9,13 +9,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "auth/project.clj" }}
+          - v1-dependencies-{{ checksum "project.clj" }}
           - v1-dependencies-
-      - run: cd auth && lein deps && cd ..
+      - run: lein deps
       - save_cache:
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ checksum "auth/project.clj" }}
+          key: v1-dependencies-{{ checksum "project.clj" }}
 
   test:
     docker:
@@ -24,14 +24,14 @@ jobs:
     environment:
       LEIN_ROOT: "true"
       JVM_OPTS: -Xmx3200m
-    
+
     steps:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "auth/project.clj" }}
+          - v1-dependencies-{{ checksum "project.clj" }}
           - v1-dependencies-
-      - run: cd auth && lein test && cd ..
+      - run: lein test
 
 workflows:
   version: 2
