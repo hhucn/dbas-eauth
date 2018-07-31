@@ -45,6 +45,7 @@
       (ring-resp/redirect redirect)
       (catch Exception e
         (println "Login not successful. Redirecting to" redirect_uri)
+        (println e)
         (ring-resp/redirect redirect_uri)))))
 
 (defn success-page [{{:keys [recipient sender account_linking]} :json-params :as params}]
@@ -78,6 +79,11 @@
 (comment
   (client/get "http://localhost:8080/resolve-user?service=Facebook&app_id=1144092719067446&user_id=1235572976569567"))
 
+(defn add-user [{json :json-params}]
+    (if (s/valid? ::add-user-params json)
+      (do (k/assoc-in store [(select-keys json [:service :app_id :user_id])] (:nickname json))
+          (http/json-response {:status :ok}))
+      (http/json-response {:status :error})))
 
 ;; -----------------------------------------------------------------------------
 
@@ -99,6 +105,8 @@
 (s/def ::resolve-user-params
   (s/keys :req-un [::service ::app_id ::user_id]))
 
+(s/def ::add-user-params
+    (s/keys :req-un [::service ::app_id ::user_id ::nickname]))
 
 ;; -----------------------------------------------------------------------------
 
@@ -107,7 +115,8 @@
 (def routes #{["/login" :get (conj common-interceptors `login-page)]
               ["/auth" :post (conj common-interceptors `auth-page)]
               ["/success" :post (conj common-interceptors `success-page)]
-              ["/resolve-user" :get (conj common-interceptors `resolve-user)]})
+              ["/resolve-user" :get (conj common-interceptors `resolve-user)]
+              ["/add-user" :post (conj common-interceptors `add-user)]})
 
 (def service {:env :prod
               ::http/routes routes
