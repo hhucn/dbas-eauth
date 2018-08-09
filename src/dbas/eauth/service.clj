@@ -72,8 +72,11 @@
     (if-let [nickname (<!! (k/get-in store [{:service service
                                              :app_id app_id
                                              :user_id user_id}]))]
-      (http/json-response {:status :ok, :data {:nickname nickname}})
-      (http/json-response {:status :error, :data "Could not resolve nickname!"}))
+      (do                                    (println "Nickname resolved:" nickname)
+          (http/json-response {:status :ok, :data {:nickname nickname}}))
+      (do (println "Could not resolve nickname for: " service app_id user_id)
+          (http/json-response {:status :error, :data "Could not resolve nickname!"})))
+
     (http/json-response {:status :error, :data "You fucked up your parameters! Try: /resolve-user?service=Facebook&app_id=1456&user_id=2378"})))
 
 (comment
@@ -81,9 +84,11 @@
 
 (defn add-user [{json :json-params}]
     (if (s/valid? ::add-user-params json)
-      (do (k/assoc-in store [(select-keys json [:service :app_id :user_id])] (:nickname json))
+      (do (println "Add" (select-keys json [:service :app_id :user_id]) (:nickname json) "to store.")
+          (k/assoc-in store [(select-keys json [:service :app_id :user_id])] (:nickname json))
           (http/json-response {:status :ok}))
-      (http/json-response {:status :error})))
+      (-> (http/json-response {:status :error :data (s/explain-data ::add-user-params json)})
+          (assoc :status 400))))
 
 ;; -----------------------------------------------------------------------------
 
